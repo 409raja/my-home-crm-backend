@@ -2,28 +2,25 @@ const express = require("express")
 const router = express.Router()
 const { google } = require("googleapis")
 
+router.get("/auth", (req,res)=>{
+
 const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
+process.env.GOOGLE_CLIENT_ID,
+process.env.GOOGLE_CLIENT_SECRET,
+"https://my-home-crm-backend.onrender.com/api/gmail/callback"
 )
 
-router.get("/connect", (req,res)=>{
-  const url = oauth2Client.generateAuthUrl({
-    access_type: "offline",
-    scope: ["https://www.googleapis.com/auth/gmail.readonly"]
-  })
-
-  res.redirect(url)
+const url = oauth2Client.generateAuthUrl({
+access_type:"offline",
+scope:["https://www.googleapis.com/auth/gmail.readonly"]
 })
 
-router.get("/callback", async (req,res)=>{
-  const { code } = req.query
+res.redirect(url)
 
-  const { tokens } = await oauth2Client.getToken(code)
-  console.log("GMAIL TOKENS:", tokens)
+})
 
-  res.send("Gmail connected. You can close this tab.")
+router.get("/callback",(req,res)=>{
+res.send("Gmail connected successfully")
 })
 
 module.exports = router
