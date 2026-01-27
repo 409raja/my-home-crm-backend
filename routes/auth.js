@@ -5,7 +5,11 @@ const jwt = require("jsonwebtoken")
 
 // Register
 router.post("/register", async (req,res)=>{
-  const user = new User(req.body)
+  const user = new User({
+    ...req.body,
+    empId:"EMP"+Date.now()
+    })
+
   await user.save()
   res.json(user)
 })
@@ -13,7 +17,11 @@ router.post("/register", async (req,res)=>{
 // Create user
 router.post("/create", async (req,res)=>{
   try{
-    const user = new User(req.body)
+    const user = new User({
+    ...req.body,
+    empId:"EMP"+Date.now()
+    })
+
     await user.save()
     res.json(user)
   }catch(err){
@@ -60,5 +68,10 @@ router.delete("/:id", async(req,res)=>{
 await User.findByIdAndDelete(req.params.id)
 res.json({success:true})
 })
+router.put("/disable/:id", async(req,res)=>{
+await User.findByIdAndUpdate(req.params.id,{active:false})
+res.json({success:true})
+})
+
 
 module.exports = router

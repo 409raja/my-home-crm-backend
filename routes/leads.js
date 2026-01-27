@@ -81,4 +81,10 @@ router.delete("/:id", async (req,res)=>{
   }
 })
 
+router.get("/count/:name", async(req,res)=>{
+const count = await Lead.countDocuments({owner:req.params.name})
+res.json({count})
+})
+
+
 module.exports = router
