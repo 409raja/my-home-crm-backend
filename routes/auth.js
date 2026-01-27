@@ -1,5 +1,3 @@
-
-
 const express = require("express")
 const router = express.Router()
 const User = require("../models/User")
@@ -12,21 +10,21 @@ router.post("/register", async (req,res)=>{
   res.json(user)
 })
 
-// Create user (Owner only for now)
+// Create user
 router.post("/create", async (req,res)=>{
-try{
-const user = new User(req.body)
-await user.save()
-res.json(user)
-}catch(err){
-res.status(500).json(err)
-}
+  try{
+    const user = new User(req.body)
+    await user.save()
+    res.json(user)
+  }catch(err){
+    res.status(500).json(err)
+  }
 })
-
 
 // Login
 router.post("/login", async (req,res)=>{
   const { email, password } = req.body
+
   const user = await User.findOne({ email, password })
 
   if(!user) return res.status(401).json({msg:"Invalid"})
@@ -35,23 +33,6 @@ router.post("/login", async (req,res)=>{
     { id:user._id, role:user.role, name:user.name },
     "secret123"
   )
-
-  router.get("/users", async (req,res)=>{
-  const users = await User.find()
-  res.json(users)
-})
-
-// Get all users
-router.get("/users", async (req,res)=>{
-try{
-const users = await User.find()
-res.json(users)
-}catch(err){
-res.status(500).json(err)
-}
-})
-
-
 
   res.json({
     token,
@@ -63,5 +44,15 @@ res.status(500).json(err)
   })
 })
 
+// Get all users
+router.get("/users", async (req,res)=>{
+  try{
+    const users = await User.find()
+    res.json(users)
+  }catch(err){
+    res.status(500).json(err)
+  }
+}
+)
 
 module.exports = router
