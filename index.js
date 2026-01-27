@@ -4,6 +4,8 @@ require("dotenv").config()
 const express = require("express")
 const cors = require("cors")
 const mongoose = require("mongoose")
+const gmailRoutes = require("./routes/gmail")
+app.use("/api/gmail", gmailRoutes)
 
 const leadRoutes = require("./routes/leads")
 const authRoutes = require("./routes/auth")
