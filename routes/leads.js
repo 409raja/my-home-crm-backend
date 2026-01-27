@@ -3,26 +3,33 @@ const router = express.Router()
 const Lead = require("../models/Lead")
 
 // Create lead
+const User = require("../models/User")
+
 let agentIndex = 0
-const agents = ["Ravi","Aman","Suresh"]
 
 router.post("/", async (req,res) => {
-  try {
+try{
 
-    // auto assign if Website lead
-    if(req.body.source === "Website"){
-      req.body.owner = agents[agentIndex]
-      agentIndex = (agentIndex + 1) % agents.length
-    }
+if(req.body.source==="Website"){
 
-    const lead = new Lead(req.body)
-    await lead.save()
-    res.json(lead)
+const agents = await User.find({ role:"Agent" })
 
-  } catch(err) {
-    res.status(500).json(err)
-  }
+if(agents.length>0){
+req.body.owner = agents[agentIndex % agents.length].name
+agentIndex++
+}
+
+}
+
+const lead = new Lead(req.body)
+await lead.save()
+res.json(lead)
+
+}catch(err){
+res.status(500).json(err)
+}
 })
+
 
 // Get all leads
 /*
