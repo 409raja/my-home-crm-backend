@@ -43,31 +43,38 @@ if(!messages.data.messages) return res.json([])
 
 for(const m of messages.data.messages){
 
+// read email
 const msg = await gmail.users.messages.get({
 userId:"me",
 id:m.id
 })
 
-const snippet = msg.data.snippet
+const snippet = msg.data.snippet || ""
 
-// Extract phone (10 digit)
+// archive email
+await gmail.users.messages.modify({
+userId:"me",
+id:m.id,
+requestBody:{ removeLabelIds:["INBOX"] }
+})
+
+// Extract phone
 const phoneMatch = snippet.match(/\b\d{10}\b/)
 if(!phoneMatch) continue
 
 const phone = phoneMatch[0]
 
-
-// Extract name (first word heuristic)
+// name
 const name = snippet.split(" ")[0] || "Gmail Lead"
 
-// Detect property type
+// property detect
 let property="General Enquiry"
 if(snippet.toLowerCase().includes("2bhk")) property="2BHK"
 if(snippet.toLowerCase().includes("villa")) property="Villa"
 
 await Lead.create({
 client:name,
-phone:phone,
+phone,
 property,
 owner:"Website",
 status:"New",
@@ -78,7 +85,9 @@ source:"Gmail"
 }
 
 res.json({success:true})
+
 })
+
 
 
 module.exports = router
