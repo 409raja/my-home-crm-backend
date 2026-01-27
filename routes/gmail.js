@@ -27,11 +27,11 @@ oauth2Client.setCredentials(tokens)
 res.send("Gmail connected successfully")
 })
 
-router.get("/fetch",async(req,res)=>{
+router.get("/fetch", async (req,res)=>{
+
 if(!tokens) return res.status(401).send("Gmail not connected")
 
 oauth2Client.setCredentials(tokens)
-
 const gmail = google.gmail({version:"v1",auth:oauth2Client})
 
 const messages = await gmail.users.messages.list({
@@ -50,21 +50,32 @@ id:m.id
 
 const snippet = msg.data.snippet
 
-if(snippet.toLowerCase().includes("property")){
+// Extract phone (10 digit)
+const phoneMatch = snippet.match(/\b\d{10}\b/)
+const phone = phoneMatch ? phoneMatch[0] : ""
+
+// Extract name (first word heuristic)
+const name = snippet.split(" ")[0] || "Gmail Lead"
+
+// Detect property type
+let property="General Enquiry"
+if(snippet.toLowerCase().includes("2bhk")) property="2BHK"
+if(snippet.toLowerCase().includes("villa")) property="Villa"
 
 await Lead.create({
-client:"Gmail Lead",
-phone:"",
-property:"Email enquiry",
+client:name,
+phone:phone,
+property,
 owner:"Website",
 status:"New",
+note:snippet,
 source:"Gmail"
 })
 
 }
-}
 
 res.json({success:true})
 })
+
 
 module.exports = router
