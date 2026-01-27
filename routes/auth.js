@@ -17,7 +17,11 @@ router.post("/register", async (req,res)=>{
 // Create user
 router.post("/create", async (req,res)=>{
   try{
-    const user = new User({
+  if(req.body.phone.length!==13){
+  return res.status(400).json({msg:"Invalid phone"})
+  }
+  const user = new User({
+
     ...req.body,
     empId:"EMP"+Date.now()
     })
