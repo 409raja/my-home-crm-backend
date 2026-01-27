@@ -52,7 +52,10 @@ const snippet = msg.data.snippet
 
 // Extract phone (10 digit)
 const phoneMatch = snippet.match(/\b\d{10}\b/)
-const phone = phoneMatch ? phoneMatch[0] : ""
+if(!phoneMatch) continue
+
+const phone = phoneMatch[0]
+
 
 // Extract name (first word heuristic)
 const name = snippet.split(" ")[0] || "Gmail Lead"
