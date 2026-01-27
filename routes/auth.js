@@ -36,6 +36,11 @@ router.post("/login", async (req,res)=>{
     "secret123"
   )
 
+  router.get("/users", async (req,res)=>{
+  const users = await User.find()
+  res.json(users)
+})
+
 // Get all users
 router.get("/users", async (req,res)=>{
 try{
