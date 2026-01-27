@@ -36,6 +36,18 @@ router.post("/login", async (req,res)=>{
     "secret123"
   )
 
+// Get all users
+router.get("/users", async (req,res)=>{
+try{
+const users = await User.find()
+res.json(users)
+}catch(err){
+res.status(500).json(err)
+}
+})
+
+
+
   res.json({
     token,
     user:{
