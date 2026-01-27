@@ -12,6 +12,18 @@ router.post("/register", async (req,res)=>{
   res.json(user)
 })
 
+// Create user (Owner only for now)
+router.post("/create", async (req,res)=>{
+try{
+const user = new User(req.body)
+await user.save()
+res.json(user)
+}catch(err){
+res.status(500).json(err)
+}
+})
+
+
 // Login
 router.post("/login", async (req,res)=>{
   const { email, password } = req.body
@@ -33,4 +45,6 @@ router.post("/login", async (req,res)=>{
     }
   })
 })
+
+
 module.exports = router
