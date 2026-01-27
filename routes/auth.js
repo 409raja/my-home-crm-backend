@@ -72,6 +72,10 @@ router.put("/disable/:id", async(req,res)=>{
 await User.findByIdAndUpdate(req.params.id,{active:false})
 res.json({success:true})
 })
+router.put("/enable/:id", async(req,res)=>{
+await User.findByIdAndUpdate(req.params.id,{active:true})
+res.json({success:true})
+})
 
 
 module.exports = router
