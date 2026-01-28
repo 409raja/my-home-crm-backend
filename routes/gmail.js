@@ -60,17 +60,24 @@ const snippet = msg.data.snippet || ""
 const client = from.split("<")[0].trim()
 
 // phone
+// Extract phone
 const phoneMatch = snippet.match(/\b\d{10}\b/)
 if(!phoneMatch) continue
 const phone = phoneMatch[0]
 
-// avoid duplicates
-const exists = await Lead.findOne({ phone })
-if(exists) continue
+// Try to extract name before phone
+let name = "Gmail Lead"
+const nameMatch = snippet.match(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)/)
 
-let property = subject
+if(nameMatch){
+  name = nameMatch[1]
+}
 
-if(property.length > 50) property = "General Enquiry"
+// Property detection
+let property = "General Enquiry"
+if(snippet.toLowerCase().includes("2bhk")) property="2BHK"
+if(snippet.toLowerCase().includes("3bhk")) property="3BHK"
+if(snippet.toLowerCase().includes("villa")) property="Villa"
 
 await Lead.create({
 client,
