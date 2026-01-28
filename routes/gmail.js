@@ -54,30 +54,33 @@ const headers = msg.data.payload.headers
 const from = headers.find(h=>h.name==="From")?.value || "Gmail Lead"
 const subject = headers.find(h=>h.name==="Subject")?.value || "Property Enquiry"
 
-const snippet = msg.data.snippet || ""
+const body = Buffer.from(
+  msg.data.payload.parts?.[0]?.body?.data || "",
+  "base64"
+).toString("utf8")
 
 // clean client name
 const client = from.split("<")[0].trim()
 
 // phone
 // Extract phone
-const phoneMatch = snippet.match(/\b\d{10}\b/)
+const phoneMatch = body.match(/Mobile\s*[-:]\s*(\d{10})/i)
 if(!phoneMatch) continue
 const phone = phoneMatch[0]
 
 // Try to extract name before phone
 let name = "Gmail Lead"
-const nameMatch = snippet.match(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)/)
-
+const nameMatch = body.match(/Name\s*[-:]\s*(.*)/i)
 if(nameMatch){
   name = nameMatch[1]
 }
 
-// Property detection
-let property = "General Enquiry"
-if(snippet.toLowerCase().includes("2bhk")) property="2BHK"
-if(snippet.toLowerCase().includes("3bhk")) property="3BHK"
-if(snippet.toLowerCase().includes("villa")) property="Villa"
+// Property
+const propertyMatch = body.match(/Property\s*[-:]\s*(.*)/i)
+
+const client = nameMatch ? nameMatch[1].trim() : "Gmail Lead"
+const phone = phoneMatch ? phoneMatch[1] : ""
+const property = propertyMatch ? propertyMatch[1].trim() : "General Enquiry"
 
 await Lead.create({
 client,
@@ -85,9 +88,10 @@ phone,
 property,
 owner:"Website",
 status:"New",
-note:snippet,
+note: body,
 source:"Gmail"
 })
+
 
 }
 
