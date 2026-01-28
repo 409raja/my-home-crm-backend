@@ -41,56 +41,61 @@ maxResults:5
 
 if(!messages.data.messages) return res.json([])
 
-for(const m of messages.data.messages){
+for (const m of messages.data.messages) {
 
-// read email
-const msg = await gmail.users.messages.get({
-userId:"me",
-id:m.id
-})
+  const msg = await gmail.users.messages.get({
+    userId: "me",
+    id: m.id
+  })
 
-const headers = msg.data.payload.headers
+  const headers = msg.data.payload.headers || []
 
-const from = headers.find(h=>h.name==="From")?.value || "Gmail Lead"
-const subject = headers.find(h=>h.name==="Subject")?.value || "Property Enquiry"
+  const from = headers.find(h => h.name === "From")?.value || ""
+  const subject = headers.find(h => h.name === "Subject")?.value || ""
 
-const body = Buffer.from(
-  msg.data.payload.parts?.[0]?.body?.data || "",
-  "base64"
-).toString("utf8")
+  // Read email body safely
+  let body = ""
 
-// clean client name
-const client = from.split("<")[0].trim()
+  if (msg.data.payload.parts?.length) {
+    body = Buffer.from(
+      msg.data.payload.parts[0].body.data || "",
+      "base64"
+    ).toString("utf8")
+  }
 
-// phone
-// Extract phone
-const phoneMatch = body.match(/Mobile\s*[-:]\s*(\d{10})/i)
-if(!phoneMatch) continue
-const phone = phoneMatch[0]
+  // PHONE (10 digits)
+  const phoneMatch = body.match(/\b\d{10}\b/)
+  if (!phoneMatch) continue
 
-// Try to extract name before phone
-let name = "Gmail Lead"
-const nameMatch = body.match(/Name\s*[-:]\s*(.*)/i)
-if(nameMatch){
-  name = nameMatch[1]
-}
+  const phone = phoneMatch[0]
 
-// Property
-const propertyMatch = body.match(/Property\s*[-:]\s*(.*)/i)
+  // NAME (from email body first, fallback sender)
+  let client = "Gmail Lead"
 
-const client = nameMatch ? nameMatch[1].trim() : "Gmail Lead"
-const phone = phoneMatch ? phoneMatch[1] : ""
-const property = propertyMatch ? propertyMatch[1].trim() : "General Enquiry"
+  const nameMatch = body.match(/Name\s*[-:]\s*(.*)/i)
 
-await Lead.create({
-client,
-phone,
-property,
-owner:"Website",
-status:"New",
-note: body,
-source:"Gmail"
-})
+  if (nameMatch) {
+    client = nameMatch[1].trim()
+  } else {
+    client = from.split("<")[0].trim()
+  }
+
+  // PROPERTY
+  let property = "General Enquiry"
+
+  if (body.toLowerCase().includes("2bhk")) property = "2BHK"
+  if (body.toLowerCase().includes("3bhk")) property = "3BHK"
+  if (body.toLowerCase().includes("villa")) property = "Villa"
+
+  await Lead.create({
+    client,
+    phone,
+    property,
+    owner: "Website",
+    status: "New",
+    note: body,
+    source: "Gmail"
+  })
 
 
 }
