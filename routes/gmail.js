@@ -49,31 +49,31 @@ userId:"me",
 id:m.id
 })
 
+const headers = msg.data.payload.headers
+
+const from = headers.find(h=>h.name==="From")?.value || "Gmail Lead"
+const subject = headers.find(h=>h.name==="Subject")?.value || "Property Enquiry"
+
 const snippet = msg.data.snippet || ""
 
-// archive email
-await gmail.users.messages.modify({
-userId:"me",
-id:m.id,
-requestBody:{ removeLabelIds:["INBOX"] }
-})
+// clean client name
+const client = from.split("<")[0].trim()
 
-// Extract phone
+// phone
 const phoneMatch = snippet.match(/\b\d{10}\b/)
 if(!phoneMatch) continue
-
 const phone = phoneMatch[0]
 
-// name
-const name = snippet.split(" ")[0] || "Gmail Lead"
+// avoid duplicates
+const exists = await Lead.findOne({ phone })
+if(exists) continue
 
-// property detect
-let property="General Enquiry"
-if(snippet.toLowerCase().includes("2bhk")) property="2BHK"
-if(snippet.toLowerCase().includes("villa")) property="Villa"
+let property = subject
+
+if(property.length > 50) property = "General Enquiry"
 
 await Lead.create({
-client:name,
+client,
 phone,
 property,
 owner:"Website",
