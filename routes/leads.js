@@ -4,8 +4,6 @@ const Lead = require("../models/Lead")
 
 // Create lead
 const User = require("../models/User")
-let assignIndex = 0
-let agentIndex = 0
 
 router.post("/", async (req,res) => {
 try{
@@ -14,17 +12,11 @@ if(req.body.source==="Website"){
 
 const agents = await User.find({ role:"Agent", active:true })
 
-let assigned = "Unassigned"
-
 if(agents.length){
-assigned = agents[assignIndex % agents.length].name
-assignIndex++
-}
-
-
-if(agents.length>0){
-req.body.owner = agents[agentIndex % agents.length].name
-agentIndex++
+const random = Math.floor(Math.random()*agents.length)
+req.body.owner = agents[random].name
+}else{
+req.body.owner = "Unassigned"
 }
 
 }
