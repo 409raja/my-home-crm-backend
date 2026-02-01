@@ -9,7 +9,7 @@ process.env.GOOGLE_CLIENT_SECRET,
 "https://my-home-crm-backend.onrender.com/api/gmail/callback"
 )
 
-let assignIndex = 0
+
 let tokens = null
 
 router.get("/auth",(req,res)=>{
