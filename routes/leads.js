@@ -14,9 +14,9 @@ const agents = await User.find({ role:"Agent", active:true })
 
 if(agents.length){
 
-const count = await Lead.countDocuments()
+const websiteCount = await Lead.countDocuments({ source: req.body.source })
 
-req.body.owner = agents[count % agents.length].name
+req.body.owner = agents[websiteCount % agents.length].name
 
 }
 
