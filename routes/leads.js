@@ -8,18 +8,20 @@ const User = require("../models/User")
 router.post("/", async (req,res) => {
 try{
 
-if(req.body.source==="Website"){
+if(req.body.source==="Website" || req.body.source==="Gmail"){
 
 const agents = await User.find({ role:"Agent", active:true })
 
 if(agents.length){
-const random = Math.floor(Math.random()*agents.length)
-req.body.owner = agents[random].name
-}else{
-req.body.owner = "Unassigned"
+
+const count = await Lead.countDocuments()
+
+req.body.owner = agents[count % agents.length].name
+
 }
 
 }
+
 
 const lead = new Lead(req.body)
 await lead.save()
