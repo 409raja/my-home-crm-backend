@@ -1,9 +1,9 @@
-
 const express = require("express")
 const router = express.Router()
 const { google } = require("googleapis")
 const Lead = require("../models/Lead")
 const User = require("../models/User")
+const Setting = require("../models/Setting")
 
 const oauth2Client = new google.auth.OAuth2(
 process.env.GOOGLE_CLIENT_ID,
@@ -11,94 +11,81 @@ process.env.GOOGLE_CLIENT_SECRET,
 "https://my-home-crm-backend.onrender.com/api/gmail/callback"
 )
 
-let tokens = null
+let tokens=null
+
+async function assignAgent(){
+
+const agents = await User.find({ role:"Agent", active:true })
+if(!agents.length) return "Unassigned"
+
+let setting = await Setting.findOne({ key:"gmailIndex" })
+
+if(!setting){
+setting = await Setting.create({ key:"gmailIndex", value:0 })
+}
+
+const agent = agents[ setting.value % agents.length ]
+
+setting.value++
+await setting.save()
+
+return agent.name
+}
 
 router.get("/auth",(req,res)=>{
-const url = oauth2Client.generateAuthUrl({
+res.redirect(oauth2Client.generateAuthUrl({
 access_type:"offline",
 scope:["https://www.googleapis.com/auth/gmail.readonly"]
-})
-res.redirect(url)
+}))
 })
 
 router.get("/callback",async(req,res)=>{
-const { code } = req.query
-const { tokens:tk } = await oauth2Client.getToken(code)
-tokens = tk
+const {tokens:t}=await oauth2Client.getToken(req.query.code)
+tokens=t
 oauth2Client.setCredentials(tokens)
-res.send("Gmail connected successfully")
+res.send("Gmail connected")
 })
 
-router.get("/fetch", async (req,res)=>{
+router.get("/fetch",async(req,res)=>{
 
-if(!tokens) return res.status(401).send("Gmail not connected")
+if(!tokens) return res.send("connect gmail first")
 
 oauth2Client.setCredentials(tokens)
 const gmail = google.gmail({version:"v1",auth:oauth2Client})
 
-const messages = await gmail.users.messages.list({
-userId:"me",
-maxResults:5
-})
+const list = await gmail.users.messages.list({userId:"me",maxResults:5})
+if(!list.data.messages) return res.json({success:true})
 
-if(!messages.data.messages) return res.json([])
+for(const m of list.data.messages){
 
-for(const m of messages.data.messages){
+const msg = await gmail.users.messages.get({userId:"me",id:m.id})
 
-const msg = await gmail.users.messages.get({
-userId:"me",
-id:m.id
-})
-
-let body = ""
-
-if(msg.data.payload.parts?.length){
-body = Buffer.from(
-msg.data.payload.parts[0].body.data || "",
+let body = Buffer.from(
+msg.data.payload.parts?.[0]?.body?.data||"",
 "base64"
 ).toString("utf8")
-}
 
-// phone
-const phoneMatch = body.match(/\b\d{10}\b/)
-if(!phoneMatch) continue
-const phone = phoneMatch[0]
+const phone = body.match(/\b\d{10}\b/)?.[0]
+if(!phone) continue
 
-// name
-let client="Gmail Lead"
-const nameMatch = body.match(/Name\s*[-:]\s*(.*)/i)
-if(nameMatch) client=nameMatch[1].trim()
+let name = body.match(/Name\s*[-:]\s*(.*)/i)?.[1] || "Gmail Lead"
 
-// property
 let property="General Enquiry"
 if(body.toLowerCase().includes("2bhk")) property="2BHK"
 if(body.toLowerCase().includes("3bhk")) property="3BHK"
-if(body.toLowerCase().includes("villa")) property="Villa"
-
-// AUTO ASSIGN (GLOBAL)
-const agents = await User.find({ role:"Agent", active:true })
-
-let owner="Unassigned"
-
-if(agents.length){
-const total = await Lead.countDocuments()
-owner = agents[total % agents.length].name
-}
 
 await Lead.create({
-client,
+client:name.trim(),
 phone,
 property,
-owner,
+owner:await assignAgent(),
 status:"New",
 note:body,
 source:"Gmail"
 })
-
 }
 
 res.json({success:true})
-
 })
 
 module.exports = router

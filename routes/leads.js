@@ -2,86 +2,66 @@ const express = require("express")
 const router = express.Router()
 const Lead = require("../models/Lead")
 const User = require("../models/User")
+const Setting = require("../models/Setting")
 
-router.post("/", async (req,res)=>{
-try{
+async function assignAgent(){
 
-// frontend never controls owner
-delete req.body.owner
-
-// AUTO ASSIGN for ALL leads
 const agents = await User.find({ role:"Agent", active:true })
+if(!agents.length) return "Unassigned"
 
-if(agents.length){
+let setting = await Setting.findOne({ key:"leadIndex" })
 
-// total leads count (not source based)
-const count = await Lead.countDocuments()
-
-req.body.owner = agents[count % agents.length].name
-
-}else{
-req.body.owner = "Unassigned"
+if(!setting){
+setting = await Setting.create({ key:"leadIndex", value:0 })
 }
 
-const lead = new Lead(req.body)
-await lead.save()
+const agent = agents[ setting.value % agents.length ]
 
+setting.value += 1
+await setting.save()
+
+return agent.name
+}
+
+// CREATE LEAD
+router.post("/", async(req,res)=>{
+try{
+
+if(req.body.source==="Website" || req.body.source==="Gmail"){
+req.body.owner = await assignAgent()
+}
+
+delete req.body._id
+
+const lead = await Lead.create(req.body)
 res.json(lead)
 
-}catch(err){
-console.log(err)
-res.status(500).json(err)
+}catch(e){
+console.log(e)
+res.status(500).json(e)
 }
 })
 
-
-// GET leads
-router.get("/", async (req,res)=>{
-try{
-const { role, name } = req.query
-
-let leads
+// GET LEADS
+router.get("/", async(req,res)=>{
+const { role,name } = req.query
 
 if(role==="Agent"){
-leads = await Lead.find({ owner:name })
-}else{
-leads = await Lead.find()
+return res.json(await Lead.find({ owner:name }))
 }
 
-res.json(leads)
-
-}catch(err){
-res.status(500).json(err)
-}
+res.json(await Lead.find())
 })
 
-
-// Update lead
-router.put("/:id", async (req,res)=>{
-try{
-const lead = await Lead.findByIdAndUpdate(req.params.id, req.body, {new:true})
-res.json(lead)
-}catch(err){
-res.status(500).json(err)
-}
+// UPDATE
+router.put("/:id", async(req,res)=>{
+res.json(await Lead.findByIdAndUpdate(req.params.id,req.body,{new:true}))
 })
 
-
-// Delete lead
-router.delete("/:id", async (req,res)=>{
-try{
+// DELETE
+router.delete("/:id", async(req,res)=>{
 await Lead.findByIdAndDelete(req.params.id)
 res.json({success:true})
-}catch(err){
-res.status(500).json(err)
-}
-})
-
-
-// Agent lead count
-router.get("/count/:name", async(req,res)=>{
-const count = await Lead.countDocuments({owner:req.params.name})
-res.json({count})
 })
 
 module.exports = router
