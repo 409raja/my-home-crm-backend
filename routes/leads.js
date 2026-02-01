@@ -1,67 +1,52 @@
 const express = require("express")
 const router = express.Router()
 const Lead = require("../models/Lead")
-const User = require("../models/User")
-const Setting = require("../models/Setting")
+const assignAgentRoundRobin = require("../utils/assignAgent")
 
-async function assignAgent(){
+// CREATE LEAD (ONLY PLACE ASSIGNMENT HAPPENS)
+router.post("/", async (req, res) => {
+  try {
+    const { client, phone, property, source, note } = req.body
 
-const agents = await User.find({ role:"Agent", active:true })
-if(!agents.length) return "Unassigned"
+    const assignedAgent = await assignAgentRoundRobin()
 
-let setting = await Setting.findOne({ key:"leadIndex" })
+    const lead = await Lead.create({
+      client,
+      phone,
+      property,
+      note,
+      source,
+      owner: assignedAgent
+    })
 
-if(!setting){
-setting = await Setting.create({ key:"leadIndex", value:0 })
-}
-
-const agent = agents[ setting.value % agents.length ]
-
-setting.value += 1
-await setting.save()
-
-return agent.name
-}
-
-// CREATE LEAD
-router.post("/", async(req,res)=>{
-try{
-
-if(req.body.source==="Website" || req.body.source==="Gmail"){
-req.body.owner = await assignAgent()
-}
-
-delete req.body._id
-
-const lead = await Lead.create(req.body)
-res.json(lead)
-
-}catch(e){
-console.log(e)
-res.status(500).json(e)
-}
+    res.json(lead)
+  } catch (err) {
+    res.status(500).json(err)
+  }
 })
 
 // GET LEADS
-router.get("/", async(req,res)=>{
-const { role,name } = req.query
+router.get("/", async (req, res) => {
+  const { role, userId } = req.query
 
-if(role==="Agent"){
-return res.json(await Lead.find({ owner:name }))
-}
+  let leads
+  if (role === "Agent") {
+    leads = await Lead.find({ owner: userId }).populate("owner", "name")
+  } else {
+    leads = await Lead.find().populate("owner", "name")
+  }
 
-res.json(await Lead.find())
+  res.json(leads)
 })
 
-// UPDATE
-router.put("/:id", async(req,res)=>{
-res.json(await Lead.findByIdAndUpdate(req.params.id,req.body,{new:true}))
+router.put("/:id", async (req, res) => {
+  const lead = await Lead.findByIdAndUpdate(req.params.id, req.body, { new: true })
+  res.json(lead)
 })
 
-// DELETE
-router.delete("/:id", async(req,res)=>{
-await Lead.findByIdAndDelete(req.params.id)
-res.json({success:true})
+router.delete("/:id", async (req, res) => {
+  await Lead.findByIdAndDelete(req.params.id)
+  res.json({ success: true })
 })
 
 module.exports = router
