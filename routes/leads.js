@@ -5,7 +5,7 @@ const Lead = require("../models/Lead")
 // Create lead
 const User = require("../models/User")
 
-router.post("/", async (req,res) => {
+router.post("/", async (req,res)=>{
 try{
 
 if(req.body.source==="Website" || req.body.source==="Gmail"){
@@ -14,23 +14,27 @@ const agents = await User.find({ role:"Agent", active:true })
 
 if(agents.length){
 
-const websiteCount = await Lead.countDocuments({ source: req.body.source })
+const count = await Lead.countDocuments({ source:req.body.source })
 
-req.body.owner = agents[websiteCount % agents.length].name
-
+req.body.owner = agents[count % agents.length].name
 }
 
 }
 
+// ❗ force delete any frontend owner
+delete req.body.owner
 
 const lead = new Lead(req.body)
 await lead.save()
+
 res.json(lead)
 
 }catch(err){
+console.log(err)
 res.status(500).json(err)
 }
 })
+
 
 
 // Get all leads

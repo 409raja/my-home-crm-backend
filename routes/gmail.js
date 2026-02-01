@@ -95,8 +95,11 @@ for (const m of messages.data.messages) {
     let assigned = "Unassigned"
 
     if(agents.length){
-    assigned = agents[assignIndex % agents.length].name
-    assignIndex++
+
+    const count = await Lead.countDocuments({ source:"Gmail" })
+
+    assigned = agents[count % agents.length].name
+
     }
 
     await Lead.create({
@@ -109,14 +112,11 @@ for (const m of messages.data.messages) {
     source:"Gmail"
     })
 
-
-
 }
 
 res.json({success:true})
 
 })
-
 
 
 module.exports = router
