@@ -87,15 +87,21 @@ for (const m of messages.data.messages) {
   if (body.toLowerCase().includes("3bhk")) property = "3BHK"
   if (body.toLowerCase().includes("villa")) property = "Villa"
 
-  await Lead.create({
+  const User = require("../models/User")
+
+    const agents = await User.find({ role:"Agent", active:true })
+    const assigned = agents.length ? agents[0].name : "Unassigned"
+
+    await Lead.create({
     client,
     phone,
     property,
-    owner: "Website",
-    status: "New",
+    owner: assigned,
+    status:"New",
     note: body,
-    source: "Gmail"
-  })
+    source:"Gmail"
+    })
+
 
 
 }
