@@ -9,6 +9,7 @@ process.env.GOOGLE_CLIENT_SECRET,
 "https://my-home-crm-backend.onrender.com/api/gmail/callback"
 )
 
+let assignIndex = 0
 let tokens = null
 
 router.get("/auth",(req,res)=>{
@@ -90,7 +91,13 @@ for (const m of messages.data.messages) {
   const User = require("../models/User")
 
     const agents = await User.find({ role:"Agent", active:true })
-    const assigned = agents.length ? agents[0].name : "Unassigned"
+
+    let assigned = "Unassigned"
+
+    if(agents.length){
+    assigned = agents[assignIndex % agents.length].name
+    assignIndex++
+    }
 
     await Lead.create({
     client,
