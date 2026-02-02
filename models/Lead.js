@@ -2,7 +2,7 @@ const mongoose = require("mongoose")
 
 const LeadSchema = new mongoose.Schema({
   client: String,
-  phone: String,
+  phone: Number,
   property: String,
 
   owner: {

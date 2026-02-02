@@ -11,7 +11,7 @@ const UserSchema = new mongoose.Schema({
     required: true
   },
 
-  phone: String,
+  phone: Number,
 
   empId: {
     type: String,
